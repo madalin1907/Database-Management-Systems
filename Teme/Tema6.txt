@@ -1,0 +1,557 @@
+Ex. 2)
+
+
+CREATE OR REPLACE TYPE tip_orase_fma IS TABLE OF VARCHAR2(250);
+
+
+CREATE TABLE EXCURSIE_FMA (
+    cod_excursie NUMBER(4) CONSTRAINT PK_EXCURSIE_FMA PRIMARY KEY,
+    denumire VARCHAR(20),
+    orase tip_orase_fma,
+    status VARCHAR(15) CONSTRAINT check_status_fma CHECK(status IN ('UNAVAILABLE','AVAILABLE'))
+)
+NESTED TABLE orase STORE AS tabel_orase_fma;
+
+
+
+a)
+
+
+INSERT INTO EXCURSIE_FMA
+VALUES (1, 'SPANIA', tip_orase_fma('MADRID', 'BARCELONA', 'VALENCIA', 'SEVILLA', 'MALAGA'), 'AVAILABLE');
+
+INSERT INTO EXCURSIE_FMA
+VALUES (2, 'FRANTA', tip_orase_fma('PARIS', 'NANTES', 'TOULOUSE', 'MONTPELLIER', 'LYON'), 'UNAVAILABLE');
+
+INSERT INTO EXCURSIE_FMA
+VALUES (3, 'ITALIA', tip_orase_fma('ROMA', 'NAPOLI', 'MILANO', 'VENETIA', 'GENOA'), 'AVAILABLE');
+
+INSERT INTO EXCURSIE_FMA
+VALUES (4, 'ANGLIA', tip_orase_fma('LONDRA', 'MANCHESTER', 'LIVERPOOL', 'LEEDS', 'BIRMINGHAM'), 'AVAILABLE');
+
+INSERT INTO EXCURSIE_FMA
+VALUES (5, 'GERMANIA', tip_orase_fma('BERLIN', 'MUNCHEN', 'DORTMUND', 'LEIPZIG', 'BREMEN'), 'UNAVAILABLE');
+
+-- select * from EXCURSIE_FMA
+
+
+
+b)
+
+
+b.1.
+
+
+DECLARE
+    cod NUMBER(4) := &id;
+    oras VARCHAR(200) := '&oras';
+BEGIN
+    INSERT INTO TABLE (SELECT orase FROM EXCURSIE_FMA WHERE cod_excursie = cod) VALUES (UPPER(oras));
+
+    DBMS_OUTPUT.PUT_LINE (oras || ' inserted succesfully');
+END;
+
+
+
+b.2.
+
+
+DECLARE 
+    tabel tip_orase_fma := tip_orase_fma();
+    aux tip_orase_fma := tip_orase_fma();
+    cod NUMBER(4) := &id;
+    oras VARCHAR(200) := '&oras';
+BEGIN
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA
+    WHERE cod_excursie = cod;
+    
+    FOR i in 1..tabel.count LOOP
+        aux.extend;
+        
+        IF i = 1 
+            THEN aux(i) := tabel(i);
+        END IF;
+        
+        IF i = 2
+            THEN aux(i) := UPPER(oras);
+            aux.extend;
+            aux(i + 1) := tabel(i);
+        END IF;
+        
+        IF i > 2
+            THEN aux(i + 1) := tabel(i);
+        END IF;
+        
+    END LOOP;
+    
+    UPDATE EXCURSIE_FMA
+    SET orase = aux
+    WHERE cod_excursie = cod;
+END;
+
+
+
+b.3.
+
+
+DECLARE 
+    tabel tip_orase_fma := tip_orase_fma();
+    cod NUMBER(4) := &id;
+    oras1 VARCHAR(30) := UPPER('&oras1');
+    oras2 VARCHAR(30) := UPPER('&oras2');
+BEGIN
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA
+    WHERE cod_excursie = cod;
+    
+    FOR i in 1..tabel.count LOOP
+        IF tabel(i) = oras1 
+            THEN tabel(i) := oras2;
+        ELSE
+            IF tabel(i) = oras2 
+                THEN tabel(i) := oras1;
+            END IF;
+        END IF;
+    END LOOP;
+    
+    UPDATE EXCURSIE_FMA
+    SET orase = tabel
+    WHERE cod_excursie = cod;
+    
+    DBMS_OUTPUT.PUT_LINE (oras1 || ' and ' || oras2 || ' swapped succesfully');
+END;
+
+
+
+b.4.
+
+
+DECLARE 
+    tabel tip_orase_fma := tip_orase_fma();
+    aux tip_orase_fma := tip_orase_fma();
+    cod NUMBER(4) := &id;
+    oras VARCHAR(30) := UPPER('&oras');
+    k NUMBER(6) := 1;
+    
+BEGIN
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA
+    WHERE cod_excursie = cod;
+    
+    FOR i in 1..tabel.count LOOP
+        IF tabel(i) != oras
+            THEN aux.extend;
+                 aux(k) := tabel(i);
+                 k := k + 1;  
+        END IF;
+    END LOOP;
+    
+    UPDATE EXCURSIE_FMA
+    SET orase = aux
+    WHERE cod_excursie = cod;
+    
+    DBMS_OUTPUT.PUT_LINE (oras || ' deleted succesfully');
+END;
+
+
+
+c)
+
+
+DECLARE 
+    tabel tip_orase_fma := tip_orase_fma();
+    cod NUMBER(4) := &id;
+    
+BEGIN
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA
+    WHERE cod_excursie = cod;
+    
+    DBMS_OUTPUT.PUT_LINE('Nr. orase vizitate: ' || tabel.count || ', Orase vizitate: ');
+    FOR i in 1..tabel.count LOOP
+         DBMS_OUTPUT.PUT_LINE(tabel(i) || ' ');
+    END LOOP;
+END;
+
+
+
+d)
+
+
+DECLARE 
+    tabel tip_orase_fma := tip_orase_fma();
+    TYPE tip_coduri IS VARRAY(5) OF NUMBER(6);
+    coduri tip_coduri;
+    cod NUMBER(6);
+    
+BEGIN
+    SELECT cod_excursie BULK COLLECT
+    INTO coduri
+    FROM EXCURSIE_FMA;
+
+    for i in coduri.FIRST..coduri.LAST LOOP
+        cod := coduri(i);
+        SELECT orase
+        INTO tabel
+        FROM EXCURSIE_FMA
+        WHERE cod_excursie = cod;
+        
+        DBMS_OUTPUT.PUT_LINE('Excursia ' || cod || ':');
+        FOR i in 1..tabel.count LOOP
+            DBMS_OUTPUT.PUT_LINE(tabel(i));
+        END LOOP;
+        
+        DBMS_OUTPUT.PUT_LINE('');
+    END LOOP;
+END;
+
+
+
+e)
+
+
+DECLARE 
+    tabel tip_orase_fma := tip_orase_fma();
+    TYPE tip_coduri IS VARRAY(5) OF NUMBER(6);
+    coduri tip_coduri;
+    cod NUMBER(6) ;
+    minim NUMBER(6);
+    numar NUMBER(6);
+    
+BEGIN
+    SELECT cod_excursie BULK COLLECT
+    INTO coduri
+    FROM EXCURSIE_FMA;
+
+    cod := coduri(1);
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA
+    WHERE cod_excursie = cod;
+    
+    minim := tabel.count;
+    
+    FOR i IN 2..coduri.LAST LOOP
+        cod := coduri(i);
+
+        SELECT orase
+        INTO tabel
+        FROM EXCURSIE_FMA
+        WHERE cod_excursie = cod;
+
+        IF tabel.count < minim
+            THEN minim := tabel.count;
+        END IF;
+    END LOOP;
+    
+    DBMS_OUTPUT.PUT_LINE('Minimul de orase dintr-o excursie: ' || minim);
+        
+    FOR i IN coduri.FIRST..coduri.LAST LOOP
+        cod := coduri(i);
+
+        SELECT orase
+        INTO tabel
+        FROM EXCURSIE_FMA
+        WHERE cod_excursie = cod;
+        
+        IF tabel.count = minim THEN
+            UPDATE EXCURSIE_FMA
+            SET status = 'UNAVAILABLE'
+            WHERE cod_excursie = cod;
+        END IF;
+    END LOOP;
+    
+    DBMS_OUTPUT.PUT_LINE('Au fost anulate excursiile cu numar minim de orase.');
+END;
+
+
+
+
+
+
+
+Ex. 3)
+
+
+CREATE OR REPLACE TYPE tip_orase_fma2 IS VARRAY(300) OF VARCHAR2(200);
+
+
+CREATE TABLE EXCURSIE_FMA2 (
+    cod_excursie NUMBER(4) CONSTRAINT PK_EXCURSIE_FMA2 PRIMARY KEY,
+    denumire VARCHAR(20),
+    orase tip_orase_fma2,
+    status VARCHAR(20) CONSTRAINT check_status_fma2 CHECK(status in ('UNAVAILABLE','AVAILABLE')));
+
+
+
+a)
+
+
+INSERT INTO EXCURSIE_FMA2
+VALUES (1, 'SPANIA', tip_orase_fma2('MADRID', 'BARCELONA', 'VALENCIA', 'SEVILLA', 'MALAGA'), 'AVAILABLE');
+
+INSERT INTO EXCURSIE_FMA2
+VALUES (2, 'FRANTA', tip_orase_fma2('PARIS', 'NANTES', 'TOULOUSE', 'MONTPELLIER', 'LYON'), 'UNAVAILABLE');
+
+INSERT INTO EXCURSIE_FMA2
+VALUES (3, 'ITALIA', tip_orase_fma2('ROMA', 'NAPOLI', 'MILANO', 'VENETIA', 'GENOA'), 'AVAILABLE');
+
+INSERT INTO EXCURSIE_FMA2
+VALUES (4, 'ANGLIA', tip_orase_fma2('LONDRA', 'MANCHESTER', 'LIVERPOOL', 'LEEDS', 'BIRMINGHAM'), 'AVAILABLE');
+
+INSERT INTO EXCURSIE_FMA2
+VALUES (5, 'GERMANIA', tip_orase_fma2('BERLIN', 'MUNCHEN', 'DORTMUND', 'LEIPZIG', 'BREMEN'), 'UNAVAILABLE');
+
+-- select * from EXCURSIE_FMA2
+
+
+
+b)
+
+
+b.1.
+
+
+DECLARE
+    cod NUMBER(4) := &id;
+    oras VARCHAR(30) := UPPER('&oras');
+    tabel tip_orase_fma2 := tip_orase_fma2();
+BEGIN
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA2
+    WHERE cod_excursie = cod;
+    
+    tabel.extend;
+    tabel(tabel.count) := oras;
+    
+    UPDATE EXCURSIE_FMA2
+    SET orase = tabel
+    WHERE cod_excursie = cod;
+
+    DBMS_OUTPUT.PUT_LINE (oras || ' inserted succesfully');
+END;
+
+
+
+b.2.
+
+
+DECLARE 
+    tabel tip_orase_fma2 := tip_orase_fma2();
+    aux tip_orase_fma2 := tip_orase_fma2();
+    cod NUMBER(4) := &id;
+    oras VARCHAR(200) := UPPER('&oras');
+    
+BEGIN
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA2
+    WHERE cod_excursie = cod;
+    
+    FOR i in 1..tabel.count LOOP
+        aux.extend;
+        
+        IF i = 1 
+            THEN aux(i) := tabel(i);
+        END IF;
+        
+        IF i = 2
+            THEN aux(i) := oras;
+            aux.extend;
+            aux(i + 1) := tabel(i);
+        END IF;
+        
+        IF i > 2
+            THEN aux(i + 1) := tabel(i);
+        END IF;
+    END LOOP;
+    
+    UPDATE EXCURSIE_FMA2
+    SET orase = aux
+    WHERE cod_excursie = cod;
+END;
+
+
+
+b.3.
+
+
+DECLARE 
+    tabel tip_orase_fma2 := tip_orase_fma2();
+    cod NUMBER(4) := &id;
+    oras1 VARCHAR(30) := UPPER('&oras1');
+    oras2 VARCHAR(30) := UPPER('&oras2');
+    
+BEGIN
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA2
+    WHERE cod_excursie = cod;
+    
+    FOR i in 1..tabel.count LOOP
+        IF tabel(i) = oras1 
+            THEN tabel(i) := oras2;
+        ELSE
+            IF tabel(i) = oras2 
+                THEN tabel(i) := oras1;
+            END IF;
+        END IF;
+    END LOOP;
+    
+    UPDATE EXCURSIE_FMA2
+    SET orase = tabel
+    WHERE cod_excursie = cod;
+    
+    DBMS_OUTPUT.PUT_LINE (oras1 || ' and ' || oras2 || ' swapped succesfully');
+END;
+
+
+
+b.4.
+
+
+DECLARE 
+    tabel tip_orase_fma2 := tip_orase_fma2();
+    aux tip_orase_fma2 := tip_orase_fma2();
+    cod NUMBER(4) := &id;
+    oras VARCHAR(30) := UPPER('&oras');
+    k NUMBER(6) := 1;
+    
+BEGIN
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA2
+    WHERE cod_excursie = cod;
+    
+    FOR i in 1..tabel.count LOOP
+        IF tabel(i) != oras
+            THEN aux.extend;
+                 aux(k) := tabel(i);
+                 k := k + 1;  
+        END IF;
+    END LOOP;
+    
+    UPDATE EXCURSIE_FMA2
+    SET orase = aux
+    WHERE cod_excursie = cod;
+    
+    DBMS_OUTPUT.PUT_LINE (oras || ' deleted succesfully');
+END;
+
+
+
+c)
+
+
+DECLARE 
+    tabel tip_orase_fma2 := tip_orase_fma2();
+    cod NUMBER(4) := &id;
+    
+BEGIN
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA2
+    WHERE cod_excursie = cod;
+    
+    DBMS_OUTPUT.PUT_LINE('Nr. orase vizitate: ' || tabel.count || ', Orase vizitate: ');
+    FOR i in 1..tabel.count LOOP
+         DBMS_OUTPUT.PUT_LINE(tabel(i) || ' ');
+    END LOOP;
+END;
+
+
+
+d)
+
+
+DECLARE 
+    tabel tip_orase_fma2 := tip_orase_fma2();
+    TYPE tip_coduri IS VARRAY(5) OF NUMBER(6);
+    coduri tip_coduri;
+    cod NUMBER(6);
+    
+BEGIN
+    SELECT cod_excursie BULK COLLECT
+    INTO coduri
+    FROM EXCURSIE_FMA2;
+
+    for i in coduri.FIRST..coduri.LAST LOOP
+        cod := coduri(i);
+        SELECT orase
+        INTO tabel
+        FROM EXCURSIE_FMA2
+        WHERE cod_excursie = cod;
+        
+        DBMS_OUTPUT.PUT_LINE('Excursia ' || cod || ':');
+        FOR i in 1..tabel.count LOOP
+            DBMS_OUTPUT.PUT_LINE(tabel(i));
+        END LOOP;
+        
+        DBMS_OUTPUT.PUT_LINE('');
+    END LOOP;
+END;
+
+
+
+e)
+
+
+DECLARE 
+    tabel tip_orase_fma2 := tip_orase_fma2();
+    TYPE tip_coduri IS VARRAY(5) OF NUMBER(6);
+    coduri tip_coduri;
+    cod NUMBER(6) ;
+    minim NUMBER(6);
+    numar NUMBER(6);
+    
+BEGIN
+    SELECT cod_excursie BULK COLLECT
+    INTO coduri
+    FROM EXCURSIE_FMA2;
+
+    COD := coduri(1);
+    SELECT orase
+    INTO tabel
+    FROM EXCURSIE_FMA2
+    WHERE cod_excursie = cod;
+    
+    minim := tabel.count;
+    
+    FOR i IN 2..coduri.LAST LOOP
+        cod := coduri(i);
+        SELECT orase
+        INTO tabel
+        FROM EXCURSIE_FMA2
+        WHERE cod_excursie = cod;
+        IF tabel.count < minim
+            THEN minim := tabel.count;
+        END IF;
+    END LOOP;
+    
+    DBMS_OUTPUT.PUT_LINE('Minimul de orase dintr-o excursie: ' || minim);
+        
+    FOR i IN coduri.FIRST..coduri.LAST LOOP
+        cod := coduri(i);
+        
+        SELECT orase
+        INTO tabel
+        FROM EXCURSIE_FMA2
+        WHERE cod_excursie = cod;
+        
+        IF tabel.count = minim THEN
+            UPDATE EXCURSIE_FMA2
+            SET status = 'UNAVAILABLE'
+            WHERE cod_excursie = cod;
+        END IF;
+    END LOOP;
+    
+    DBMS_OUTPUT.PUT_LINE('Au fost anulate excursiile cu numar minim de orase.');
+END;
+
+SELECT * FROM EXCURSIE_FMA2

@@ -1,0 +1,22 @@
+1.
+
+a) 2
+	La inceputul subblocului, in sectiunea de DECLARE variabila numar este initializata
+cu 1, iar dupa incrementarea din BEGIN variabila numar va avea valoarea 2.
+
+b) "text 2"
+	Variabila mesaj1 din subbloc va avea valoarea atribuita in blocul principal, adica "text 2".
+
+c) "text 3 adaugat in sub-bloc" 
+	Variabila mesaj2 din subbloc va fi concatenarea dintre "text 3" declarat in blocul principal +
+"adaugat in sub-bloc", deci "text 3 adaugat in sub-bloc";
+
+d) 101
+	Va avea valoarea 101, deoarece variabila numar din subbloc este variabila locala si nu influenteaza
+valoarea variabilei din blocul principal.
+
+e) "text 1 adaugat un blocul principal"
+	Pe acelasi principiu ca la punctul anterior.
+
+f) "text 2 adaugat in blocul principal" 
+	Din acelasi motiv ca la punctele d) si e).

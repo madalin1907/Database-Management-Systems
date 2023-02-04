@@ -1,0 +1,89 @@
+2.
+
+a)
+
+SELECT data, (
+    SELECT count(*)
+    FROM rental
+    WHERE extract(day FROM book_date) = extract(day FROM data)
+    AND extract(month FROM book_date) = extract(month FROM data)) AS "Imprumuturi efectuate"
+FROM (SELECT TRUNC (last_day(SYSDATE - 30) - ROWNUM) data
+     FROM DUAL
+     CONNECT BY ROWNUM < extract(day FROM last_day(SYSDATE - 30)))
+ORDER BY data;
+
+
+
+
+
+b)
+
+CREATE TABLE OCTOMBRIE_FMA (zi number(10), book_date date);
+
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    rentals NUMBER(3) := 0;
+    d NUMBER(3) := EXTRACT(DAY FROM last_day(sysdate));
+BEGIN
+    FOR i IN 1..d LOOP
+        SELECT COUNT(*) 
+        INTO rentals FROM rental 
+        WHERE EXTRACT(DAY FROM book_date) = i
+        AND EXTRACT(MONTH FROM book_date) = extract(month from sysdate);
+        INSERT INTO OCTOMBRIE_FMA VALUES (i, TO_DATE(i ||' 10'||' 2022', 'DD MM YYYY'));
+    END LOOP;
+END;
+
+
+SELECT * FROM OCTOMBRIE_FMA;
+
+
+
+
+
+5)
+
+CREATE TABLE MEMBER_FMA AS SELECT * FROM member;
+DESC member;
+DESC MEBMER_FMA;
+ALTER TABLE MEMBER_FMA
+ADD CONSTRAINT PK_member_fma PRIMARY KEY(member_id);
+ALTER TABLE MEMBER_FMA
+ADD DISCOUNT NUMBER(6,2);
+
+
+
+DECLARE 
+    membru MEMBER_FMA.member_id%TYPE := &id;
+    nr_filme NUMBER(6);
+    nr_total NUMBER(6);
+BEGIN
+    SELECT COUNT(DISTINCT r.title_id)
+    INTO nr_filme 
+    FROM rental r
+    JOIN MEMBER_FMA m ON m.member_id = r.member_id
+    WHERE m.member_id = membru;
+    
+    SELECT COUNT(title_id)
+    INTO nr_total
+    FROM title;
+    
+    UPDATE MEMBER_FMA
+    SET discount = 
+        CASE
+            WHEN nr_filme >= 0.75 * nr_total
+                THEN 0.1
+            WHEN nr_filme BETWEEN 0.5 * nr_total AND 0.75 * nr_total
+                THEN 0.05
+            WHEN nr_filme BETWEEN 0.25 * nr_total AND 0.5 * nr_total
+                THEN 0.03
+            ELSE 0
+        END 
+    WHERE member_id = membru;
+
+    DBMS_OUTPUT.PUT_LINE('Update Done');
+END;
+
+SELECT * FROM MEMBER_FMA

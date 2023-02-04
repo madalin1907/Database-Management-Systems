@@ -1,0 +1,152 @@
+6. 
+
+SELECT DISTINCT  t.TITLE, tc.COPY_ID, tc.STATUS,
+    CASE
+        WHEN ACT_RET_DATE IS NULL THEN 'RENTED'
+        ELSE 'AVAILABLE'
+    END AS status_corect
+FROM TITLE t
+JOIN TITLE_COPY tc ON t.TITLE_ID = tc.TITLE_ID
+JOIN RENTAL r ON t.TITLE_ID = r.TITLE_ID AND r.copy_ID = tc.copy_ID;
+
+
+
+7.
+
+a)
+
+SELECT COUNT(*) FROM(
+    SELECT DISTINCT  t.TITLE, tc.COPY_ID, tc.STATUS as status_initial,
+        CASE
+            WHEN ACT_RET_DATE IS NULL THEN 'RENTED'
+            ELSE 'AVAILABLE'
+        END AS status_corect
+    FROM TITLE t
+    JOIN TITLE_COPY tc ON t.TITLE_ID = tc.TITLE_ID
+    JOIN RENTAL r ON t.TITLE_ID = r.TITLE_ID AND r.copy_ID = tc.copy_ID)
+WHERE status_initial != status_corect;
+
+
+
+b)
+
+CREATE TABLE title_copy_MADALIN AS
+SELECT * FROM title_copy;
+
+
+
+UPDATE title_copy_MADALIN
+SET status = 'RENTED'
+WHERE copy_id IN (SELECT copy_id
+          FROM (SELECT DISTINCT t.title, tc.copy_id, tc.status AS status_setat,
+                    CASE
+                        WHEN act_ret_date IS NULL THEN 'RENTED'
+                        ELSE 'AVAILABLE'
+                    END AS status_corect
+                FROM title t
+                JOIN title_copy tc ON t.title_id = tc.title_id
+                JOIN rental r ON t.title_id = r.title_id AND r.copy_id = tc.copy_id)
+          WHERE status_setat != status_corect AND status_corect = 'RENTED');
+
+
+
+UPDATE title_copy_MADALIN
+SET status = 'AVAILABLE'
+WHERE copy_id IN (SELECT copy_id
+          FROM (SELECT DISTINCT t.title, tc.copy_id, tc.status AS status_setat,
+                    CASE
+                        WHEN act_ret_date IS NULL THEN 'RENTED'
+                        ELSE 'AVAILABLE'
+                    END AS status_corect
+                FROM title t
+                JOIN title_copy tc ON t.title_id = tc.title_id
+                JOIN rental r ON t.title_id = r.title_id AND r.copy_id = tc.copy_id)
+          WHERE status_setat != status_corect AND status_corect = 'AVAILABLE');
+
+
+
+8.
+
+SELECT
+    CASE
+        WHEN COUNT(*) = 0 THEN 'Da'
+        ELSE 'Nu'
+    END AS toate_corecte
+FROM (SELECT DISTINCT r.title_id, r.res_date, rent .book_date
+     FROM reservation r
+     JOIN rental rent ON (rent .title_id = r.title_id AND rent .member_id = r.member_id)
+     WHERE r.res_date = rent .book_date);
+
+
+
+9.
+
+SELECT CONCAT(CONCAT(last_name, ' '), first_name) as Membru, T.title as Titlu, COUNT(T.title_id) as Nr
+FROM MEMBER M, RENTAL R, TITLE T
+WHERE M.member_id = R.member_id AND T.title_id = R.title_id
+GROUP BY last_name, first_name, T.title
+ORDER BY 3 desc;
+
+
+
+10.
+
+SELECT CONCAT(CONCAT(last_name, ' '), FIRST_NAME) as Membru, T.TITLE as Titlu, R.COPY_ID ID_COPIE, COUNT(R.COPY_ID) NR
+FROM MEMBER M, RENTAL R, TITLE T
+WHERE M.member_id = R.member_id AND T.title_id = R.title_id
+GROUP BY last_name, first_name, T.title, R.copy_id
+ORDER BY last_name;
+
+
+
+11.
+
+WITH nr_exemplare as (SELECT title_id, copy_id, COUNT(*) as numar_per_titlu
+                      FROM rental ex
+                      GROUP BY title_id, copy_id
+                      HAVING COUNT(*) = (SELECT MAX(numar_per_titlu)
+                                         FROM (SELECT title_id, copy_id, COUNT(*) as numar_per_titlu
+                                               FROM rental
+                                               GROUP BY title_id, copy_id) maxim
+                                         WHERE ex.title_id = maxim.title_id
+                                         GROUP BY ex.title_id)
+                      )
+SELECT UNIQUE tc.title_id as ID, tc.copy_id, nr.numar_per_titlu as Nr_Exemplare, tc.status as Status
+FROM TITLE_COPY tc, nr_exemplare nr
+WHERE tc.title_id = nr.title_id and nr.copy_id = tc.copy_id
+ORDER BY 1;
+
+
+
+12.
+
+a)
+
+SELECT to_char(act_ret_date, 'dd') zi, COUNT(act_ret_date) imprumuturi
+FROM rental
+WHERE to_char(act_ret_date, 'dd-mm-yyyy') = '01-' || to_char(sysdate, 'mm-yyyy')
+   OR to_char(act_ret_date, 'dd-mm-yyyy') = '02-' || to_char(sysdate, 'mm-yyyy')
+GROUP BY act_ret_date;
+
+
+
+b)
+
+SELECT to_char(act_ret_date, 'dd') zi, count(act_ret_date) imprumuturi
+FROM rental
+WHERE to_char(act_ret_date, 'mm-yyyy') = to_char(sysdate, 'mm-yyyy')
+GROUP BY act_ret_date;
+
+
+
+c)
+
+SELECT to_char(zi_luna, 'dd') zi,
+       (SELECT COUNT(act_ret_date)
+        FROM rental
+        WHERE act_ret_date = zi_luna) imprumuturi
+FROM (SELECT to_date('01-' || to_char(sysdate, 'mon-yyyy')) + level - 1 zi_luna
+      FROM dual
+      CONNECT BY LEVEL <= TO_DATE('01-' || TO_CHAR(sysdate + 31, 'mon-yyyy')) - TO_DATE('01-' || to_char(sysdate, 'mon-yyyy')))
+GROUP BY zi_luna
+ORDER BY zi;

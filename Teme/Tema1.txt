@@ -1,0 +1,50 @@
+CREATE TABLE EMP_MADALIN AS SELECT * FROM Employees;
+
+
+
+17.
+
+SET PAGESIZE 0;
+SET FEEDBACK OFF;
+SPOOL "C:\Users\Madalin\Desktop\stergere.sql"
+SELECT 'Drop table ' || table_name || ' CASCADE CONSTRAINTS PURGE;'
+FROM user_tables WHERE table_name = 'EMP_MADALIN';
+
+
+
+18.
+
+Pe desktop s-a creat fișierul stergere.sql care conține linia următoare:
+Drop table EMP_MADALIN CASCADE CONSTRAINTS PURGE;
+
+
+
+20.
+
+Nu am observat niciun efect.
+
+
+
+21.
+
+Am folosit la exercițiul 17.
+
+
+
+22.
+
+Pot apărea erori dacă path-ul de la linia 3 este introdus greșit sau dacă tabelul care ar trebui
+șters nu există (a fost șters deja sau nu a fost creat).
+
+Pentru a rezolva prima eroare, vom introduce un path valid, iar pentru a rezolva a doua eroare,
+vom introduce o clauză IF pentru a verifica existența tabelului înainte de ștergere.
+
+
+
+23.
+
+SET PAGESIZE 0
+SPOOL "C:\Users\Madalin\Desktop\inserare.sql"
+SELECT 'INSERT INTO departments (department_id, department_name, manager_id, location_id) VALUES(' || department_id || ',' || department_name || ',' || manager_id || ',' || location_id || ');'
+FROM departments;
+SPOOL OFF;

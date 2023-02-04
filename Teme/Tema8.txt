@@ -1,0 +1,81 @@
+CREATE TABLE INFO_FMA(
+   username VARCHAR(255),
+   data DATE,
+   comanda VARCHAR(255),
+   nr_linii NUMBER(7),
+   eroare VARCHAR(255)
+)
+
+
+
+CREATE TABLE EMPLOYEES_COPY_FMA AS
+    SELECT  FROM EMPLOYEES;
+
+
+
+CREATE OR REPLACE FUNCTION f2_fma
+        (v_nume employees.last_name%TYPE)
+
+    RETURN NUMBER IS
+        salariu employees.salary%TYPE;
+        aux_username VARCHAR(255);
+        data_crt DATE;
+
+    BEGIN
+        SELECT user INTO aux_username
+        FROM dual;
+        DBMS_OUTPUT.PUT_LINE(aux_username);
+
+
+        SELECT current_date INTO data_crt
+        FROM dual;
+        DBMS_OUTPUT.PUT_LINE(data_crt);
+
+        SELECT salary INTO salariu
+        FROM EMPLOYEES_COPY_FMA
+        WHERE last_name = v_nume;
+
+        INSERT INTO INFO_FMA (username, data, comanda, nr_linii)
+        VALUES(aux_username, data_crt, 'SELECT salariu', 1);
+
+        RETURN salariu;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Nu exista angajati cu numele specificat.');
+
+            INSERT INTO INFO_FMA
+            VALUES (aux_username, data_crt, 'SELECT salariu', 0, 'Nu exista angajati cu numele specificat.');
+
+            return 0;
+
+        WHEN TOO_MANY_ROWS THEN
+            DBMS_OUTPUT.PUT_LINE('Exista mai multi angajati cu numele specificat.');
+
+            INSERT INTO INFO_FMA (username, data, comanda, nr_linii, eroare)
+            VALUES (aux_username, data_crt, 'SELECT salariu', 0, 'Exista mai multi angajati cu numele specificat.');
+
+            return 0;
+
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Alta eroare.');
+
+            INSERT INTO INFO_FMA
+            VALUES (aux_username, data_crt, 'SELECT salariu', 0, 'Alta eroare.');
+
+            return 0;
+END f2_fma;
+
+
+
+DECLARE
+    salariu NUMBER;
+BEGIN
+    salariu = f2_fma('&name');
+    DBMS_OUTPUT.PUT_LINE(salariu);
+END;
+
+
+
+SELECT  FROM INFO_FMA;
+COMMIT
